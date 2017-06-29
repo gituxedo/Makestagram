@@ -34,7 +34,6 @@ class LoginViewController: UIViewController {
         authUI.delegate = self
         let authViewController = authUI.authViewController()
         present(authViewController, animated: true)
-        print("login button tapped")
     }
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         //get new view: segue.destinationViewController
@@ -48,14 +47,18 @@ extension LoginViewController: FUIAuthDelegate {
         }
         guard let user = user
             else {return}
-        let userRef = Database.database().reference().child("users").child(user.uid)
-        userRef.observeSingleEvent(of: .value, with: {(snapshot) in
-            if let user = User(snapshot: snapshot) {
-                print("welcome back, \(user.username).")
+        UserService.show(forUID: user.uid) {(user) in
+            if let user = user {
+                //handle existing user
+                User.setCurrent(user, writeToUserDefaults: true)
+                print("user already exists: \(user.username)")
+                let initialViewController = UIStoryboard.initialViewController(for: .main)
+                self.view.window?.rootViewController = initialViewController
+                self.view.window?.makeKeyAndVisible()
             } else {
-                print("new user")
+                //handle new user
+                self.performSegue(withIdentifier: Constants.Segue.toCreateUsername, sender: self)
             }
-        })
-        print("handle user signup/login")
+        }
     }
 }
